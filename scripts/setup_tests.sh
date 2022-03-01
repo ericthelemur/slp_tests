@@ -1,4 +1,4 @@
-source ./setup_env.sh
+source scripts/setup_env.sh
 
 if ! [ -z "$1" ] ; then
     sed -i "s/#define SEND_INTERVAL .\+/#define SEND_INTERVAL (unsigned long) (CLOCK_SECOND \/ $1)/" "../contiki-ng/slp-tests/rpl-udp/project-conf.h"
@@ -14,3 +14,4 @@ function runtest() {
 }
 
 export -f runtest
+echo "Setup complete"
