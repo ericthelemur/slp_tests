@@ -1,3 +1,7 @@
+# ./scripts/setup_tests.sh <dir suffix> <send freq> <slp policy>
+echo "Use run all tests"
+exit 1
+
 source scripts/setup_env.sh
 
 if ! [ -z "$1" ] ; then
@@ -17,8 +21,7 @@ function runtest() {
     mkdir -p "out/${1%%.*}"
     java -jar ../cooja/dist/cooja.jar -nogui=gen/$1 > "out/${1%%.*}/$(basename $1).log"
 
-    # mv COOJA.log "out/${1%%.*}"
-    # mv COOJA.testlog "out/${1%%.*}"
+
     echo "FINISHED gen/$1"
 }
 

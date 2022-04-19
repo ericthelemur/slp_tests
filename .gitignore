@@ -1,4 +1,8 @@
 /out
 out.zip
-results*
+results-*
+gen-*
 presentation
+COOJA.log
+COOJA.testlog
+jobs.log
