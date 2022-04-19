@@ -14,6 +14,7 @@ parser.add_argument("--number", "-n", type=int, default=10, help="Number of case
 parser.add_argument("--output-name", "-o", type=str, default="ex", help="Prefix on generated files")
 parser.add_argument("--template", type=str, default="template.csc", help="Template file for .csc")
 parser.add_argument("--node-template", type=str, default="nodetemplate.csc", help="Template file per node in .csc")
+parser.add_argument("--script-template", type=str, default="templatescript.js", help="Template test script to generate with")
 parser.add_argument("--pcap-name", "-p", type=str, default="{{TITLE}}", help="Prefix of the pcap file. Final files will be <p><case no>.pcap for combined and <p><case no>_<node id>.pcap per node")
 parser.add_argument("--init-numb", "-i", type=int, default=1, help="Number to start numbering from -- useful if generating extra test examples")
 
@@ -62,4 +63,11 @@ for file_no in range(args.init_numb, args.init_numb + args.number):
                     .replace("{{PCAP}}", os.path.join("out", args.target_folder, title, f"{args.pcap_name}"))
                     .replace("{{TITLE}}", title)
                     .replace("{{NODES}}", nodes)
+        )
+
+# Copy js script over
+with open(os.path.join("gen", args.target_folder, "testscript.js"), "w") as opfile:
+    with open(args.script_template) as infile:
+        opfile.write(infile.read()
+                        .replace("{{RADIUS}}", args.radius)
         )

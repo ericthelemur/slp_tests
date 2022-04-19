@@ -1023,12 +1023,7 @@
   <plugin>
     org.contikios.cooja.plugins.ScriptRunner
     <plugin_config>
-      <script>
-TIMEOUT(100000)
-YIELD_THEN_WAIT_UNTIL(msg.contains("request 0"));
-GENERATE_MSG(200, "script timeout");
-YIELD_THEN_WAIT_UNTIL(msg.equals("script timeout"));
-SCRIPT_TIMEOUT();</script>
+      <scriptfile>[CONFIG_DIR]/testscript.js</scriptfile>
       <active>false</active>
     </plugin_config>
     <width>600</width>

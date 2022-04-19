@@ -108,15 +108,10 @@
       <location_y>403</location_y>
   </plugin>
 
-  <plugin>
+   <plugin>
     org.contikios.cooja.plugins.ScriptRunner
     <plugin_config>
-      <script>
-TIMEOUT(10000000)
-YIELD_THEN_WAIT_UNTIL(msg.contains("request 0"));
-GENERATE_MSG(1000, "script timeout");
-YIELD_THEN_WAIT_UNTIL(msg.equals("script timeout"));
-SCRIPT_TIMEOUT();</script>
+      <scriptfile>[CONFIG_DIR]/testscript.js</scriptfile>
       <active>false</active>
     </plugin_config>
     <width>600</width>
