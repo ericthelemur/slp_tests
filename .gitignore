@@ -2,6 +2,7 @@
 out.zip
 results-*
 gen-*
+tests-*
 presentation
 COOJA.log
 COOJA.testlog
