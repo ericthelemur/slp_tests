@@ -1,3 +1,4 @@
+#!/bin/bash
 # ./scripts/run_all_tests.sh <send freq> <slp: NONE, RAND, CUMUL_RAND, COUNTER, RANDINT_COUNTER> [batch name]
 
 freq=$1
@@ -5,6 +6,8 @@ slp_pol=$2
 batch_name=$3
 # Take input from stdin if existing, otherwise find in gen
 [ ! -t 0 ] && files=$(cat -) || files=$(find gen -type f -name "*.csc" -printf '%P\n')
+
+echo files $files
 
 # ----------- SETUP ---------------
 suffix="$batch_name-$slp_pol-$(date +%Y-%m-%d_%H%M)"
@@ -64,6 +67,7 @@ export -f runtest
 echo "Setup complete, running tests"
 
 # Run tests 4 at a time (change -j#)
-echo "$files" | parallel --lb -j2 --joblog "$resdir/jobs.log" --memfree 2G --load 200% runtest {} $testdir $resdir ::: 
+# --load 500%
+echo "$files" | parallel --lb -j2 --joblog "$resdir/jobs.log" --memfree 2G --delay 30 runtest {} $testdir $resdir ::: 
 
 sleep 3
