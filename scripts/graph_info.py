@@ -18,21 +18,22 @@ parser.add_argument("n", type=str)
 parser.add_argument("--title", "-t", type=str, default=None)
 parser.add_argument("--folder", "-f", type=str, default="out")
 parser.add_argument("--violin", "-v", action='store_true')
-parser.add_argument("--safety-periods-file", type=str, default=None)
+# parser.add_argument("--safety-periods-file", type=str, default=None)
 parser.add_argument("--safety-factor", type=float, default=1.5)
 parser.add_argument("--save_data", "-s", action='store_true')
 parser.add_argument("--no-window", "-w", action='store_true')
+parser.add_argument("--bc-freq", "-b", type=int, default=None)
 args = parser.parse_args()
 
 # Fetch safety periods
-safety_periods = {}
-if args.safety_periods_file is not None:
-    with open(f"{args.folder}/{args.n}/{args.safety_periods_file}") as file:
-        contents = file.read()
-        data = ast.literal_eval(contents)
-        for i in range(1, 7+1):
-            safety_periods[i] = data["resulting_safety_periods"][f"{2*i+1}x{2*i+1}"]
-    print(safety_periods)
+# safety_periods = {}
+# if args.safety_periods_file is not None:
+#     with open(f"{args.folder}/{args.n}/{args.safety_periods_file}") as file:
+#         contents = file.read()
+#         data = ast.literal_eval(contents)
+#         for i in range(1, 7+1):
+#             safety_periods[i] = data["resulting_safety_periods"][f"{2*i+1}x{2*i+1}"]
+#     print(safety_periods)
 
 if args.title is None: args.title = f"SLP Properties of Standard RPL with {args.n}msg/s"
 
@@ -62,7 +63,8 @@ for d in sorted(glob(f"{args.folder}/{args.n}/square*")):
                     end_time[n].append(data["end_time"])
                     total[n] += 1
                     if bool(data["found"]):
-                        if n not in safety_periods or (n in safety_periods and safety_periods[n] >= data["found_time"] - data["start_time"]):
+                        if args.bc_freq is None or (data["flood_bcs"] * args.bc_freq >= data["found_time"] - data["start_time"]):
+                        # if n not in safety_periods or (n in safety_periods and safety_periods[n] >= data["found_time"] - data["start_time"]):
                             messages[n].append(data["messages"])
                             moves[n].append(data["moves"])
                             found_time[n].append(data["found_time"] - data["start_time"])
