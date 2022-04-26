@@ -23,7 +23,12 @@ parser.add_argument("--duration", "-d", type=float, default=inf)
 parser.add_argument("--cleanup-time", "-c", type=float, default=1.0)
 parser.add_argument("--write-outfile", "-w", action='store_true')
 parser.add_argument("--verbose", "-v", action='store_true')
+parser.add_argument("--overwrite", "-o", action='store_true')
 args = parser.parse_args()
+
+outpath = os.path.join(os.path.split(args.filename)[0], "out.json")
+if not args.overwrite and os.path.exists(outpath):
+    raise Exception(f"File {outpath} already exists. Use --overwrite to ignore")
 
 if args.target:
     if ":" in args.target: args.target = "::c10c:0:0:" + args.target    # Target can be node index or full IP
@@ -64,9 +69,9 @@ class Analyser:
         for i, p in self.iterator:
             if self.init_time is None: self.init_time = p.time
             # if args.verbose: print(f"{p.time} {UDP in p} {p!r}")
-            if UDP in p: 
-                if args.verbose: print(f"{p[UDP].payload!r}")
-                # input(">> ")
+            if args.verbose and UDP in p: 
+                print(f"{p[UDP].payload!r}")
+
             # If no given target, assume src of 1st UDP packet
             if self.phase == Phase.BeforeBaseline:
                 if UDP in p:    # Initialize baseline at first UDP packet
@@ -149,6 +154,10 @@ class Analyser:
                     if args.verbose: print(f"\t rc + 1 -> {self.recieved}")
 
     def est_flooding(self):
+        if self.target is None:
+            print("No target for", args.filename)
+            return -1
+
         sink_str, target_str = Net6.int2ip(sink), Net6.int2ip(self.target)
         print(sink_str, target_str)
         if target_str == sink_str: return 0

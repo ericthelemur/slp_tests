@@ -10,4 +10,5 @@
 #SBATCH --output=joboutput_%j.out # Standard out from your job
 #SBATCH --error=joboutput_%j.err  # Standard error from your job
 
-srun ./scripts/run_all_tests.sh 0.1 NONE none-test-run
+cd ..
+find gen -type f -name "*.csc" -printf '%P\n' | srun ./scripts/run_all_tests.sh 0.1 NONE none-test-run
