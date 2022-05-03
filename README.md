@@ -4,10 +4,13 @@
 `/test-batches` contains some of the (messy) code used to dispatch batch compute jobs
 The `template*` files are used to generate examples
 
+Note, this repo only contains the scripts and test cases. The required Contiki version is at https://github.com/ericthelemur/contiki-slp and Cooja at https://github.com/ericthelemur/cooja . A set of processed results is at https://github.com/ericthelemur/slp-results . Raw results are available upon request, due to their size.
+
 ## Installation
 1. In an empty directory (in this example `/home/owen/rpl`), clone this repository and https://github.com/ericthelemur/contiki-slp
     - Should be `rpl/slp-tests` and `rpl/contiki-slp`
     - More information on requirements for Contiki-NG can be found at https://github.com/contiki-ng/contiki-ng/wiki/Toolchain-installation-on-Linux
+3. Run `git submodule update --init --recursive` inside `contiki-slp`
 2. Install Python 3.8, with packets `scapy`, `matplotlib`, `natsort`
 3. Run `slp_tests/scripts/finish_install.sh` to complete installation (note not fully tested)
     - It will link cooja and firmware dir, and populate `~/.cooja.user.properties`. If this file already exists it may require manual testing
