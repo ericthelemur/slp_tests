@@ -2,14 +2,16 @@
 # ./scripts/run_all_tests.sh [--resume | -r] [--temp | -t] <send freq> <slp: NONE, RAND, CUMUL_RAND, COUNTER, RANDINT_COUNTER> [batch name]
 # or ./scripts/run_all_tests.sh --resume <suffix> <frequency>
 
-# If resume, skip setup
+# If resume, set up vars to skip setup
 resume=""
 case "$1" in 
     -r|--resume) 
         shift
         resume=" --resume"
-        testdir="tests-$1"
-        resdir="results-$1/$2"
+        testdir="$1/tests"
+        resdir="$1/results/$2"
+        firmdir="$testdir/firmware"
+        echo "Resuming from $resdir/jobs.log"
     ;;
 esac
 
@@ -28,6 +30,10 @@ echo files $files
 
 # Run setup if not resuming
 if [ -z "$resume" ] ; then
+    export freq=$1
+    export slp_pol=$2
+    export batch_name=$3
+    echo "a $freq $slp_pol $batch_name"
     source ./scripts/run_all_setup.sh || exit 420
 fi
 
@@ -39,7 +45,7 @@ function runtest() {
     java -jar ../cooja/dist/cooja.jar -nogui=$2/$1 > "$3/${1%%.*}/$(basename $1).log"
     echo "FINISHED $2/$1"
 }
-
+# Export func, so accessible inside parallel
 export -f runtest
 echo "Setup complete, running tests"
 

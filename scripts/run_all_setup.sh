@@ -1,11 +1,13 @@
 
-freq=$1
-slp_pol=$2
-batch_name=$3
+# freq=$1
+# slp_pol=$2
+# batch_name=$3
 
 # ----------- SETUP ---------------
 
-export prefix="$(date +%Y-%m-%d_%H%M)-$batch_name-$slp_pol"
+# Create directories
+echo "b $freq $slp_pol $batch_name"
+export prefix="$(date +%Y-%m-%d_%H%M%S)-$batch_name-$slp_pol"
 testdir="$parent/$prefix/tests"
 mkdir -p "$testdir"
 resdir="$parent/$prefix/results/$freq"

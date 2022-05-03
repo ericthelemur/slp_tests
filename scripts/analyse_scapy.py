@@ -1,5 +1,5 @@
 
-# find results-std-NONE-2022-04-09_0106 -type f -name "*.pcap" | grep -P ex[0-9]+.pcap$ --color=never | xargs -L 1 python3 scripts/analyse_scapy.py -w
+# find $path -type f -name "*.pcap" | grep -P ex[0-9]+.pcap$ --color=never | parallel --lb --joblog "logs/analyse-jobs.log" python3.9 scripts/analyse_scapy.py -w -o {} :::
 from scapy.all import *
 from scapy.layers.dot15d4 import Dot15d4Data, Dot15d4, Dot15d4FCS, Dot15d4Ack
 from scapy.layers.inet import UDP
@@ -26,10 +26,12 @@ parser.add_argument("--verbose", "-v", action='store_true')
 parser.add_argument("--overwrite", "-o", action='store_true')
 args = parser.parse_args()
 
+# Check if example is already analysed
 outpath = os.path.join(os.path.split(args.filename)[0], "out.json")
 if not args.overwrite and os.path.exists(outpath):
     raise Exception(f"File {outpath} already exists. Use --overwrite to ignore")
 
+# Set target if given in args
 if args.target:
     if ":" in args.target: args.target = "::c10c:0:0:" + args.target    # Target can be node index or full IP
     args.target = Net6.ip2int(args.target)
@@ -90,7 +92,7 @@ class Analyser:
                     self.phase = Phase.Hunting
                 else: continue  # Skip until past start time (usually instant)
             
-
+            # Simulate the hunter
             if self.phase == Phase.Hunting:
                 if p.time > self.end_time:
                     break
@@ -102,7 +104,7 @@ class Analyser:
                     self.last_payload = p[UDP].payload
                     self.end_time = min(self.end_time, self.found_time + cleanup_time)
                     if args.verbose: print(f"{self.found_time=} {self.last_payload=} {self.end_time=}")
-                elif p.time > self.end_time:
+                elif p.time > self.end_time:    # End if over time
                     self.phase = Phase.End
                     break
             
@@ -111,13 +113,11 @@ class Analyser:
                 if UDP in p and p[UDP].payload == self.last_payload:
                     self.messages += 1
                     if p[Dot15d4Data].dest_addr == sink:
+                        # Ensure messages are not double counted (most likely redundant)
                         if p[UDP].payload.load not in self.src_rec:
                             self.src_rec.add(p[UDP].payload.load)
                             self.recieved += 1
                             if args.verbose: print(f"\t rc + 1 -> {self.recieved}")
-
-                            # self.receiving[p[Dot15d4FCS].seqnum] = p.time
-                            # if args.verbose: print("recieving", p[Dot15d4FCS].seqnum)
 
             if self.phase == Phase.Found or self.phase == Phase.End:
                 if p.time > self.end_time:
@@ -125,11 +125,13 @@ class Analyser:
 
         if self.end_time == inf: self.end_time = p.time
 
+        # If loop exited without capture, has ran out of capture file
         if self.phase != Phase.Found:
             print(f"PCAP exhausted before duration")
             self.result_write(False)
         else: self.result_write()
 
+    # Process a hunter move, and the packet send/recieve
     def hunter_move(self, index, p):
         self.messages += 1
 
@@ -138,41 +140,56 @@ class Analyser:
             src = p[Dot15d4Data].src_addr
             dest = p[Dot15d4Data].dest_addr
             if args.verbose: print(p.time - self.time_baseline, f"hunter {ip2str(self.hunter_pos)} src {ip2str(src)} dest {ip2str(dest)} target {ip2str(self.target)}")
-
-            if dest == self.hunter_pos:     # If recived at hunter pos, follow
+            
+            # If recived at hunter pos, follow
+            if dest == self.hunter_pos:     
                 if args.verbose: print(f"Hunter to {ip2str(src)}")
                 self.hunter_pos = src
                 self.moves += 1
-        
+
+            # Count broadcasts (at source/target)
             if src == self.target: 
-                self.broadcasts += 1  # Count broadcasts (once per bc at target)
+                self.broadcasts += 1  
                 if args.verbose: print(f"\t bc + 1 -> {self.broadcasts}")
+            # Count recieved broadcasts (at sink)
             if dest == sink:
                 if p[UDP].payload.load not in self.src_rec:
                     self.src_rec.add(p[UDP].payload.load)
                     self.recieved += 1
                     if args.verbose: print(f"\t rc + 1 -> {self.recieved}")
 
+    # Counts the number of broadcasts required to flood message, assuming perfect transmission
     def est_flooding(self):
         if self.target is None:
             print("No target for", args.filename)
             return -1
 
+        # Extract source id and network radius
         sink_str, target_str = Net6.int2ip(sink), Net6.int2ip(self.target)
         print(sink_str, target_str)
         if target_str == sink_str: return 0
         sink_x, sink_y = 0, 0
-        r = int(re.search(r"square(\d+)/", args.filename)[1])
+        r = int(re.search(r"square(\d+)", args.filename)[1])
 
+        # Get node id from target ip
         i = target_id = int(target_str.split(":")[-1], 16)
         print(f"{r=} {target_id=}")
-        f = lambda x, y: 2 + (2*r+1)*(x+r) + (y+r) - (x > sink_x or x == sink_x and y > sink_y)
-        x = -r + (i-2 + (i > f(sink_x, sink_y))) // (2*r+1)
-        y = -r + (i-2 + (i > f(sink_x, sink_y))) % (2*r+1)
+        if "off" not in args.filename:
+            # Standard grid. top left corner is node 2, sink is at (0, 0), network has height and width 2r+1. Skip one place once past the sink
+            f = lambda x, y: 2 + (2*r+1)*(x+r) + (y+r) - (x > sink_x or x == sink_x and y > sink_y)
+            # Convert id to x and y coords
+            x = -r + (i-2 + (i > f(sink_x, sink_y))) // (2*r+1)
+            y = -r + (i-2 + (i > f(sink_x, sink_y))) % (2*r+1)
+        else:
+            # Standard grid. top left corner is node 2 (at -1, -1), sink is at (0, 0), network has height and width r+2. Skip one place once past the sink
+            f = lambda x, y: (r+2)*(x+1) + (y+1) + 2 - (x > 0 or (x == 0 and y > 0))
+            x = (i-2 + (i >= f(sink_x, sink_y))) // (r+2) - 1
+            y = (i-2 + (i >= f(sink_x, sink_y))) % (r+2) - 1
         dist = abs(x) + abs(y)
         print(f"{dist=}")
         return dist
 
+    # Write collected information to out.json
     def result_write(self, found=True):
         outfile = os.path.join(os.path.split(args.filename)[0], "out.json")
         content = {"found": found, "messages": self.messages, "moves": self.moves, "broadcasts": self.broadcasts, "recieved": self.recieved, "init_time": float(self.init_time),
@@ -186,4 +203,5 @@ class Analyser:
         with open(outfile, "w") as f:
             f.write(str(content))
 
+# Call analysis
 analyser = Analyser(sink, args.target, args.start_delay, args.duration, args.cleanup_time, PcapReader(args.filename))

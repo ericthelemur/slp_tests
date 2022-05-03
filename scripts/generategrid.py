@@ -1,5 +1,5 @@
 
-# python3 generategrid.py -t square5 -r 5 -n 25
+# python3 scripts/generategrid.py -t square5 -r 5 -n 25
 from math import floor, log10
 import random
 import argparse
